@@ -1,0 +1,7 @@
+mvs:
+  - name: "mv_1" #example mv name
+    frequency: "23 30 * * *" #example cron schedule
+    refresh_buffer_minutes: 360 #example refresh buffer in minutes
+  - name: "mv_2" #example mv name
+    frequency: "45 08 * * *" #example cron schedule
+    refresh_buffer_minutes: 360 #example refresh buffer in minutes

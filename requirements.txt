@@ -1,0 +1,5 @@
+boto3==1.28.0          # AWS SDK for Python
+pyyaml==6.0            # For parsing the YAML configuration file
+croniter==1.3.14       # For handling cron-like scheduling
+psycopg2-binary==2.9.8 # For connecting to Amazon Redshift
+python-dotenv
