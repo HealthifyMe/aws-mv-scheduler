@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def send_message_to_slack(message, thread_ts=None):
-    # Post the message back to Slack
+    """Send a message to Slack."""
     slack_url = "https://slack.com/api/chat.postMessage"
     headers = {
         "Content-Type": "application/json",
@@ -17,10 +17,9 @@ def send_message_to_slack(message, thread_ts=None):
         "text": message
     }
     
-    # Add thread_ts if provided to make the message a reply
     if thread_ts:
         payload["thread_ts"] = thread_ts
     
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(slack_url, data=data, headers=headers)
-    urllib.request.urlopen(req)
+    urllib.request.urlopen(req) 

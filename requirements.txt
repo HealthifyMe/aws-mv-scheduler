@@ -3,3 +3,6 @@ pyyaml==6.0            # For parsing the YAML configuration file
 croniter==1.3.14       # For handling cron-like scheduling
 psycopg2-binary==2.9.8 # For connecting to Amazon Redshift
 python-dotenv
+pytest==7.4.0
+pylint==2.17.5
+black==23.7.0
