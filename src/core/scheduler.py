@@ -1,37 +1,28 @@
 import os
-import boto3
-import yaml
-import psycopg2
 import logging
-from datetime import datetime, timezone, timedelta
-from croniter import croniter
-from dotenv import load_dotenv
-from collections import defaultdict, deque
+import time
 import uuid
+from datetime import datetime, timezone, timedelta
+from collections import defaultdict, deque
+from croniter import croniter
+
+from ..db.connections import get_dynamodb_tables, get_redshift_connection
+from ..utils.config import load_mv_config
 
 # Configure logging
+log_dir = os.getenv('LOG_DIR', 'logs')
 logging.basicConfig(
-    filename='logs/scheduler.log',  # Log file name
-    level=logging.INFO,  # Set the logging level
-    format='%(asctime)s - %(levelname)s - %(message)s'  # Log format
+    filename=os.path.join(log_dir, 'scheduler.log'),
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Load environment variables from .env file
-load_dotenv()
-
-# DynamoDB setup
-dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION'))
-queue_table = dynamodb.Table('mv_queue')
+# Get DynamoDB tables
+queue_table, _ = get_dynamodb_tables()
 
 # Redshift connection
 def get_redshift_connection():
-    return psycopg2.connect(
-        host=os.environ.get('REDSHIFT_HOST'),
-        dbname=os.environ.get('REDSHIFT_DB_NAME'),
-        port=os.environ.get('REDSHIFT_PORT', 5439),
-        user=os.environ.get('REDSHIFT_USER_NAME'),
-        password=os.environ.get('REDSHIFT_PASSWORD'),
-    )
+    return get_redshift_connection()
 
 def check_mv_existence(mv_name):
     """
@@ -71,18 +62,6 @@ def check_mv_existence(mv_name):
             conn.close()
 
     return False
-
-def load_mv_config(file_path="mvs_config.yaml"):
-    """
-    Load the MV configuration from a YAML file.
-    """
-    try:
-        with open(file_path, "r") as file:
-            config = yaml.safe_load(file)
-            return config
-    except Exception as e:
-        logging.error(f"Error loading MV configuration: {e}")
-        return None
 
 def get_next_scheduled_time(cron_expr, from_time=None):
     """
@@ -298,7 +277,6 @@ def schedule_tasks():
         latest_scheduled_time = schedule_mv(mv_name, mvs_config, latest_scheduled_time)
 
 if __name__ == "__main__":
-    import time
     while True:
         logging.info("Checking for tasks to schedule...")
         schedule_tasks()

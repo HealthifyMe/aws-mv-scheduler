@@ -1,30 +1,26 @@
 import os
-import boto3
-import psycopg2
 import time
-import yaml
 import logging
+import threading
 from datetime import datetime, timezone, timedelta
 import uuid
-from dotenv import load_dotenv
 from decimal import Decimal
 from boto3.dynamodb.conditions import Key, Attr
-import threading
-from slack_msg import send_message_to_slack
+
+from ..db.connections import get_dynamodb_tables, get_redshift_connection
+from ..utils.config import load_config, get_refresh_buffer
+from ..utils.slack import send_message_to_slack
+
 # Configure logging
+log_dir = os.getenv('LOG_DIR', 'logs')
 logging.basicConfig(
-    filename='logs/processor.log',  # Log file name
-    level=logging.INFO,  # Set the logging level
-    format='%(asctime)s - %(levelname)s - %(message)s'  # Log format
+    filename=os.path.join(log_dir, 'processor.log'),
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Load environment variables from .env file
-load_dotenv()
-
-# DynamoDB setup
-dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION'))  
-queue_table = dynamodb.Table('mv_queue')
-history_table = dynamodb.Table('mv_history')
+# Get DynamoDB tables
+queue_table, history_table = get_dynamodb_tables()
 
 # Redshift connection
 def get_redshift_connection():
@@ -76,42 +72,6 @@ def fetch_dependencies_from_redshift(mv_name):
         if conn:
             cur.close()
             conn.close()
-
-def load_config(config_file='mvs_config.yaml'):
-    """
-    Load the configuration from the specified YAML file.
-    
-    Parameters:
-    config_file (str): The path to the YAML configuration file.
-
-    Returns:
-    dict: The loaded configuration as a dictionary.
-    """
-    with open(config_file, 'r') as file:
-        return yaml.safe_load(file)
-
-def get_refresh_buffer(mv_name, config):
-    """
-    Get the refresh buffer for the specified MV from the configuration.
-    
-    Parameters:
-    mv_name (str): The name of the materialized view.
-    config (dict): The loaded configuration dictionary.
-
-    Returns:
-    int: The refresh buffer in minutes.
-    """
-    # Access the list of MVs
-    mvs_list = config.get('mvs', [])
-    
-    # Iterate through the list to find the matching MV
-    for mv in mvs_list:
-        if mv.get('name') == mv_name:
-            return mv.get('refresh_buffer_minutes', 60)  # Default to 60 minutes if not found
-
-    # If the MV is not found, return the default value
-    logging.warning(f"Warning: No refresh buffer found for MV: {mv_name}. Defaulting to 60 minutes.")
-    return 60  # Default value if the MV is not found
 
 def reschedule_mv(current_mv_name, message_list):
     """
